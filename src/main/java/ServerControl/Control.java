@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Random;
 
 import static mindustry.Vars.*;
+import static mindustry.Vars.player;
 
 public class Control extends Plugin{
 
@@ -80,6 +81,27 @@ public class Control extends Plugin{
         });
     }
 
+    @Override
+    public void registerClientCommands(CommandHandler handler) {
+        handler.<Player>register("d", "<key>", "Activate a donation key", (args, player) ->{
+            if(donationDB.hasRow(args[0])){
+                donationDB.loadRow(args[0]);
+                int level = (int) donationDB.entries.get(args[0]).get("level");
+                int period = (int) donationDB.entries.get(args[0]).get("period");
+                addDonator(player.uuid, level, period);
+
+                player.sendMessage("[gold]Key verified! Enjoy your [scarlet]" + period + (period > 1 ? " months" : " month") + "[gold] of donator [scarlet]" + level + "[gold]!");
+                donationDB.customUpdate("DELETE FROM donation_data WHERE donateKey=\"" + args[0] + "\";");
+                Log.info("Removed key " + args[0] + " from database");
+                return;
+            }
+            player.sendMessage("[accent]Invalid key!");
+        });
+
+    }
+
+
+        @Override
     public void registerServerCommands(CommandHandler handler) {
         handler.register("pipe", "[message]", "Send message to all pipes", args -> {
             assimPipe.write(args[0]);
@@ -209,6 +231,6 @@ public class Control extends Plugin{
 
     public void globalMessage(String message){
         Call.sendMessage(message);
-        assimPipe.write("say:" + message);
+        assimPipe.write("say;" + message);
     }
 }
