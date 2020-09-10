@@ -1,7 +1,7 @@
 {
-  "name": "HubPlugin",
+  "name": "ServerControlPlugin",
   "author": "Recessive",
-  "main": "HubPlugin.HubMain",
-  "description": "A hub plugin",
+  "main": "ServerControl.Control",
+  "description": "A control plugin",
   "version": 0.0
 }
