@@ -1,7 +1,11 @@
 package ServerControl;
 
+import arc.util.Time;
+
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+
 
 public class DBInterface {
     public String table;
@@ -9,10 +13,18 @@ public class DBInterface {
     public Connection conn = null;
     public HashMap<String, HashMap<String, Object>> entries = new HashMap<String, HashMap<String, Object>>();
 
+    public boolean locked = false;
+    public boolean multipleUsers = false;
+
     public DBInterface(String database){
-        this.table = database;
+        this(database, false);
     }
 
+    public DBInterface(String database, boolean multipleUsers){
+        this.table = database;
+        this.multipleUsers = multipleUsers;
+        this.locked = multipleUsers;
+    }
 
     public void connect(String db){
         // SQLite connection string
@@ -92,10 +104,17 @@ public class DBInterface {
             e.printStackTrace();
         }
         entries.put(key, vals);
+        if(multipleUsers){
+            locked = false;
+            Time.runTask(60, () -> {locked = true;}); // 1 second delay
+        }
 
     }
-
     public void saveRow(String key){
+        saveRow(key, true);
+    }
+
+    public void saveRow(String key, boolean drop){
         try {
             HashMap<String, Object> vals = entries.get(key);
 
@@ -128,7 +147,7 @@ public class DBInterface {
                 e.printStackTrace();
             }
 
-            entries.remove(key);
+            if(drop) entries.remove(key);
         }catch(NullPointerException e){
             e.printStackTrace();
         }
@@ -173,5 +192,22 @@ public class DBInterface {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public void safePut(String primaryKey, String key, Object value){
+        this.safePut(primaryKey, key, value, false);
+    }
+
+    public void safePut(String primaryKey, String key, Object value, boolean overwrite){
+        if(locked && !overwrite){
+            throw new RuntimeException("Accessing locked entries");
+        }else{
+            this.entries.get(primaryKey).put(key, value);
+        }
+    }
+
+    public Object safeGet(String primaryKey, String key){
+        return this.entries.get(primaryKey).get(key);
+
     }
 }

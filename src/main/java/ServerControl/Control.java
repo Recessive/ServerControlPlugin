@@ -33,16 +33,16 @@ public class Control extends Plugin{
 
     private HashMap<String, CustomPlayer> players = new HashMap<>();
 
-    private DBInterface playerDataDB = new DBInterface("player_data");
+    private DBInterface networkDB = new DBInterface("player_data", true);
     private DBInterface donationDB = new DBInterface("player_data");
 
-    private PipeHandler assimPipe = new PipeHandler("/tmp/hubPIPEassim");
+    private PipeHandler assimPipe = new PipeHandler("../network-files/hubPIPEassim");
 
     // FFA pos: 2000, 2545
     @Override
     public void init(){
-        playerDataDB.connect("data/server_data.db");
-        donationDB.connect(playerDataDB.conn);
+        networkDB.connect("../network-files/network_data.db");
+        donationDB.connect(networkDB.conn);
 
 
 
@@ -58,15 +58,15 @@ public class Control extends Plugin{
 
 
         Events.on(PlayerJoin.class, event -> {
-            playerDataDB.loadRow(event.player.uuid);
-            players.put(event.player.uuid, new CustomPlayer(event.player, (int) playerDataDB.entries.get(event.player.uuid).get("playTime")));
-            int dLevel = (int) playerDataDB.entries.get(event.player.uuid).get("donatorLevel");
+            networkDB.loadRow(event.player.uuid);
+            players.put(event.player.uuid, new CustomPlayer(event.player, (int) networkDB.safeGet(event.player.uuid, "playTime")));
+            int dLevel = (int) networkDB.safeGet(event.player.uuid, "donatorLevel");
             if(dLevel != 0 && donationExpired(event.player.uuid)){
                 event.player.sendMessage("\n[accent]You're donator rank has expired!");
-                playerDataDB.entries.get(event.player.uuid).put("donatorLevel", 0);
+                networkDB.safePut(event.player.uuid,"donatorLevel", 0);
                 dLevel = 0;
             }
-            playerDataDB.entries.get(event.player.uuid).put("latestName", Strings.stripColors(event.player.name));
+            networkDB.safePut(event.player.uuid,"latestName", Strings.stripColors(event.player.name));
             event.player.name = StringHandler.donatorMessagePrefix(dLevel) + Strings.stripColors(event.player.name);
             Call.setHudTextReliable(event.player.con, "[accent]Play time: [scarlet]" + players.get(event.player.uuid).playTime + "[accent] mins.");
         });
@@ -86,8 +86,8 @@ public class Control extends Plugin{
         handler.<Player>register("d", "<key>", "Activate a donation key", (args, player) ->{
             if(donationDB.hasRow(args[0])){
                 donationDB.loadRow(args[0]);
-                int level = (int) donationDB.entries.get(args[0]).get("level");
-                int period = (int) donationDB.entries.get(args[0]).get("period");
+                int level = (int) donationDB.safeGet(args[0],"level");
+                int period = (int) donationDB.safeGet(args[0],"period");
                 addDonator(player.uuid, level, period);
 
                 player.sendMessage("[gold]Key verified! Enjoy your [scarlet]" + period + (period > 1 ? " months" : " month") + "[gold] of donator [scarlet]" + level + "[gold]!");
@@ -117,10 +117,10 @@ public class Control extends Plugin{
                 return;
             }
 
-            if(!playerDataDB.entries.containsKey(args[0])){
-                playerDataDB.loadRow(args[0]);
-                playerDataDB.entries.get(args[0]).put("playtime", newTime);
-                playerDataDB.saveRow(args[0]);
+            if(!networkDB.entries.containsKey(args[0])){
+                networkDB.loadRow(args[0]);
+                networkDB.safePut(args[0],"playtime", newTime);
+                networkDB.saveRow(args[0]);
             }else{
                 Player player = players.get(args[0]).player;
                 players.get(args[0]).playTime = newTime;
@@ -147,7 +147,7 @@ public class Control extends Plugin{
                 return;
             }
 
-            if(!playerDataDB.hasRow(args[0])){
+            if(!networkDB.hasRow(args[0])){
                 Log.info("No uuid: " + args[0] + " in database");
                 return;
             }
@@ -160,7 +160,7 @@ public class Control extends Plugin{
 
 
     void savePlayerData(String uuid){
-        if(!playerDataDB.entries.containsKey(uuid)){
+        if(!networkDB.entries.containsKey(uuid)){
             if(players.containsKey(uuid)){
                 Log.info(uuid + " data already saved!");
             }else{
@@ -169,17 +169,19 @@ public class Control extends Plugin{
 
             return;
         }
+
         Log.info("Saving " + uuid + " data...");
         CustomPlayer ply = players.get(uuid);
-        playerDataDB.entries.get(uuid).put("playtime", ply.playTime);
-        playerDataDB.saveRow(uuid);
+        Log.info(ply.playTime);
+        networkDB.safePut(uuid,"playtime", ply.playTime, true);
+        networkDB.saveRow(uuid);
     }
 
-    boolean donationExpired(String uuid){ return (int) playerDataDB.entries.get(uuid).get("donateExpire") <= System.currentTimeMillis()/1000; }
+    boolean donationExpired(String uuid){ return (int) networkDB.safeGet(uuid,"donateExpire") <= System.currentTimeMillis()/1000; }
 
     void newDonator(String email, String uuid, int level, int amount){
 
-        if(!playerDataDB.hasRow(uuid)){
+        if(!networkDB.hasRow(uuid)){
             Log.info("uuid does not exist in database!");
             byte[] b = new byte[8];
             rand.nextBytes(b);
@@ -187,8 +189,8 @@ public class Control extends Plugin{
             donateKey = donateKey.replace("-","");
             donationDB.addRow(donateKey);
             donationDB.loadRow(donateKey);
-            donationDB.entries.get(donateKey).put("level", level);
-            donationDB.entries.get(donateKey).put("period", amount/(level*5));
+            donationDB.safePut(donateKey,"level", level);
+            donationDB.safePut(donateKey,"period", amount/(level*5));
             donationDB.saveRow(donateKey);
             Events.fire(new EventType.CustomEvent(new String[]{"Donation failed", email, donateKey}));
             return;
@@ -200,31 +202,31 @@ public class Control extends Plugin{
     }
 
     void addDonator(String uuid, int level, int period){
-        if(!playerDataDB.entries.containsKey(uuid)){
-            playerDataDB.loadRow(uuid);
-        }
-        boolean levelWasZero = (int) playerDataDB.entries.get(uuid).get("donatorLevel") == 0;
+        networkDB.loadRow(uuid);
 
-        if(level > (int) playerDataDB.entries.get(uuid).get("donatorLevel")){
+        boolean levelWasZero = (int) networkDB.safeGet(uuid,"donatorLevel") == 0;
+
+        if(level > (int) networkDB.safeGet(uuid,"donatorLevel")){
             Log.info("Most recent donation outranks previous.");
-            playerDataDB.entries.get(uuid).put("donateExpire", 0);
+            networkDB.safePut(uuid,"donateExpire", 0);
         };
-        playerDataDB.entries.get(uuid).put("donatorLevel", level);
-        long currentPeriod = (int) playerDataDB.entries.get(uuid).get("donateExpire") - System.currentTimeMillis()/1000;
+        networkDB.safePut(uuid,"donatorLevel", level);
+        long currentPeriod = (int) networkDB.safeGet(uuid,"donateExpire") - System.currentTimeMillis()/1000;
         currentPeriod = Math.max(0, currentPeriod);
 
-        playerDataDB.entries.get(uuid).put("donateExpire", System.currentTimeMillis()/1000 + 2592000*period + currentPeriod);
-        playerDataDB.saveRow(uuid);
-        playerDataDB.loadRow(uuid);
+        networkDB.safePut(uuid,"donateExpire", System.currentTimeMillis()/1000 + 2592000*period + currentPeriod);
+        networkDB.saveRow(uuid, false);
 
         if(players.containsKey(uuid)){
-            players.get(uuid).player.name = levelWasZero ? StringHandler.donatorMessagePrefix(level) : "" + players.get(uuid).player.name;
-            globalMessage("[gold]" + players.get(uuid).player.name + "[gold] just donated to the server!");
+            players.get(uuid).player.name = (levelWasZero ? StringHandler.donatorMessagePrefix(level) : "") + players.get(uuid).player.name;
+            globalMessage(players.get(uuid).player.name + "[gold] just donated to the server!");
         }else{
-            String name = (String) playerDataDB.entries.get(uuid).get("latestName");
-            Log.info(name);
+            String name = (String) networkDB.safeGet(uuid,"latestName");
             globalMessage(StringHandler.donatorMessagePrefix(level) + Strings.stripColors(name) + "[gold] just donated to the server!");
         }
+
+        assimPipe.write("donation;" + uuid + "," + level);
+
 
         Log.info("Added " + period + (period > 1 ? " months" : " month") + " of donator " + level + " to uuid: " + uuid);
     }
