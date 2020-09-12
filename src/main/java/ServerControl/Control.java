@@ -31,6 +31,10 @@ public class Control extends Plugin{
 
     private double counter = 0f;
 
+    private final static int minuteTime = 60 * 60;
+    private final static int timerMinute = 0;
+    private Interval interval = new Interval(10);
+
     private HashMap<String, CustomPlayer> players = new HashMap<>();
 
     private DBInterface networkDB = new DBInterface("player_data", true);
@@ -47,8 +51,7 @@ public class Control extends Plugin{
 
 
         Events.on(Trigger.update, () -> {
-            counter += Time.delta();
-            if(Math.round(counter) % (60*60) == 0){
+            if(interval.get(timerMinute,minuteTime)){
                 for(Player player : playerGroup.all()){
                     players.get(player.uuid).playTime += 1;
                     Call.setHudTextReliable(player.con, "[accent]Play time: [scarlet]" + players.get(player.uuid).playTime + "[accent] mins.");
