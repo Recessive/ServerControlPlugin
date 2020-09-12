@@ -172,7 +172,6 @@ public class Control extends Plugin{
 
         Log.info("Saving " + uuid + " data...");
         CustomPlayer ply = players.get(uuid);
-        Log.info(ply.playTime);
         networkDB.safePut(uuid,"playtime", ply.playTime, true);
         networkDB.saveRow(uuid);
     }
@@ -190,13 +189,13 @@ public class Control extends Plugin{
             donationDB.addRow(donateKey);
             donationDB.loadRow(donateKey);
             donationDB.safePut(donateKey,"level", level);
-            donationDB.safePut(donateKey,"period", amount/(level*5));
+            donationDB.safePut(donateKey,"period", amount);
             donationDB.saveRow(donateKey);
             Events.fire(new EventType.CustomEvent(new String[]{"Donation failed", email, donateKey}));
             return;
         }
 
-        addDonator(uuid, level, amount/(level*5));
+        addDonator(uuid, level, amount);
         Events.fire(new EventType.CustomEvent(new String[]{"Donation success", email}));
 
     }
