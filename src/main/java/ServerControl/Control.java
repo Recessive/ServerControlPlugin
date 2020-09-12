@@ -34,7 +34,7 @@ public class Control extends Plugin{
     private HashMap<String, CustomPlayer> players = new HashMap<>();
 
     private DBInterface networkDB = new DBInterface("player_data", true);
-    private DBInterface donationDB = new DBInterface("player_data");
+    private DBInterface donationDB = new DBInterface("donation_data");
 
     private PipeHandler assimPipe = new PipeHandler("../network-files/hubPIPEassim");
 
