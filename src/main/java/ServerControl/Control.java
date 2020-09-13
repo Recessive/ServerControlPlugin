@@ -33,6 +33,7 @@ public class Control extends Plugin{
     private DBInterface donationDB = new DBInterface("donation_data");
 
     private PipeHandler assimPipe = new PipeHandler("../network-files/hubPIPEassim");
+    private PipeHandler campaignPipe = new PipeHandler("../network-files/hubPIPEcampaign");
 
     // FFA pos: 2000, 2545
     @Override
@@ -74,6 +75,7 @@ public class Control extends Plugin{
     public void registerServerCommands(CommandHandler handler) {
         handler.register("pipe", "[message]", "Send message to all pipes", args -> {
             assimPipe.write(args[0]);
+            campaignPipe.write(args[0]);
             Log.info("Message sent.");
         });
 
@@ -148,6 +150,8 @@ public class Control extends Plugin{
 
 
         assimPipe.write("donation;" + uuid + "," + level);
+        campaignPipe.write("donation;" + uuid + "," + level);
+
 
 
         Log.info("Added " + period + (period > 1 ? " months" : " month") + " of donator " + level + " to uuid: " + uuid);
@@ -156,5 +160,6 @@ public class Control extends Plugin{
     public void globalMessage(String message){
         Call.sendMessage(message);
         assimPipe.write("say;" + message);
+        campaignPipe.write("say;" + message);
     }
 }
