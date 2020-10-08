@@ -27,13 +27,14 @@ import static mindustry.Vars.player;
 
 public class Control extends Plugin{
 
-    private Random rand = new Random(System.currentTimeMillis());
+    private final Random rand = new Random(System.currentTimeMillis());
 
-    private DBInterface networkDB = new DBInterface("player_data", true);
-    private DBInterface donationDB = new DBInterface("donation_data");
+    private final DBInterface networkDB = new DBInterface("player_data", true);
+    private final DBInterface donationDB = new DBInterface("donation_data");
 
-    private PipeHandler assimPipe = new PipeHandler("../network-files/hubPIPEassim");
-    private PipeHandler campaignPipe = new PipeHandler("../network-files/hubPIPEcampaign");
+    private final PipeHandler assimPipe = new PipeHandler("../network-files/hubPIPEassim");
+    private final PipeHandler campaignPipe = new PipeHandler("../network-files/hubPIPEcampaign");
+    private final PipeHandler plaguePipe = new PipeHandler("../network-files/hubPIPEplague");
 
     // FFA pos: 2000, 2545
     @Override
@@ -76,6 +77,7 @@ public class Control extends Plugin{
         handler.register("pipe", "[message]", "Send message to all pipes", args -> {
             assimPipe.write(args[0]);
             campaignPipe.write(args[0]);
+            plaguePipe.write(args[0]);
             Log.info("Message sent.");
         });
 
@@ -151,6 +153,7 @@ public class Control extends Plugin{
 
         assimPipe.write("donation;" + uuid + "," + level);
         campaignPipe.write("donation;" + uuid + "," + level);
+        plaguePipe.write("donation;" + uuid + "," + level);
 
 
 
@@ -161,5 +164,6 @@ public class Control extends Plugin{
         Call.sendMessage(message);
         assimPipe.write("say;" + message);
         campaignPipe.write("say;" + message);
+        plaguePipe.write("say;" + message);
     }
 }
