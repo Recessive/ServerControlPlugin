@@ -1,4 +1,4 @@
-package ServerControl;
+package main;
 
 import arc.util.Time;
 

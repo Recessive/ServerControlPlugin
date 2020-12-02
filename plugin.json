@@ -1,7 +1,7 @@
 {
   "name": "ServerControlPlugin",
   "author": "Recessive",
-  "main": "ServerControl.Control",
+  "main": "main.Control",
   "description": "A control plugin",
-  "version": 0.0
+  "version": 0.1
 }

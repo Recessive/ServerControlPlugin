@@ -1,19 +1,18 @@
-package ServerControl;
+package main;
 
 import arc.*;
 import arc.net.Server;
 import arc.util.*;
 import mindustry.core.Version;
 import mindustry.entities.bullet.BulletType;
-import mindustry.entities.type.*;
 import mindustry.game.EventType;
 import mindustry.game.EventType.*;
 import mindustry.game.Gamemode;
 import mindustry.game.Rules;
 import mindustry.gen.*;
+import mindustry.mod.Plugin;
 import mindustry.net.*;
 import mindustry.net.Net;
-import mindustry.plugin.Plugin;
 
 import java.lang.reflect.Field;
 import java.math.BigInteger;
@@ -25,7 +24,7 @@ import java.util.Random;
 import static mindustry.Vars.*;
 import static mindustry.Vars.player;
 
-public class Control extends Plugin{
+public class Control extends Plugin {
 
     private final Random rand = new Random(System.currentTimeMillis());
 
@@ -44,7 +43,7 @@ public class Control extends Plugin{
 
 
         Events.on(PlayerJoin.class, event -> {
-            networkDB.loadRow(event.player.uuid);
+            networkDB.loadRow(event.player.uuid());
         });
 
         Events.on(EventType.PlayerDonateEvent.class, event ->{
@@ -59,7 +58,7 @@ public class Control extends Plugin{
                 donationDB.loadRow(args[0]);
                 int level = (int) donationDB.safeGet(args[0],"level");
                 int period = (int) donationDB.safeGet(args[0],"period");
-                addDonator(player.uuid, level, period);
+                addDonator(player.uuid(), level, period);
 
                 player.sendMessage("[gold]Key verified! Enjoy your [scarlet]" + period + (period > 1 ? " months" : " month") + "[gold] of donator [scarlet]" + level + "[gold]!");
                 donationDB.customUpdate("DELETE FROM donation_data WHERE donateKey=\"" + args[0] + "\";");
