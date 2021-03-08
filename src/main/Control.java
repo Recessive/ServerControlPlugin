@@ -17,6 +17,7 @@ import mindustry.net.Net;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Random;
@@ -30,6 +31,7 @@ public class Control extends Plugin {
 
     private final DBInterface networkDB = new DBInterface("player_data", true);
     private final DBInterface donationDB = new DBInterface("donation_data");
+    private final DBInterface anniversaryDB = new DBInterface("anniversary_uses");
 
     private final PipeHandler assimPipe = new PipeHandler("../network-files/hubPIPEassim");
     private final PipeHandler campaignPipe = new PipeHandler("../network-files/hubPIPEcampaign");
@@ -40,6 +42,7 @@ public class Control extends Plugin {
     public void init(){
         networkDB.connect("../network-files/network_data.db");
         donationDB.connect(networkDB.conn);
+        anniversaryDB.connect(networkDB.conn);
 
 
         Events.on(PlayerJoin.class, event -> {
@@ -66,6 +69,35 @@ public class Control extends Plugin {
                 return;
             }
             player.sendMessage("[accent]Invalid key!");
+        });
+
+        handler.<Player>register("anniversary", "<key>", "Use the anniversary key", (args, player) ->{
+            if(player.donateLevel != 0){
+                player.sendMessage("[accent]Can only redeem key if you aren't a donator!");
+                return;
+            }
+            if(anniversaryDB.hasRow(player.uuid())){
+                player.sendMessage("[accent]You have already used this key!");
+                return;
+            }
+            int day = LocalDate.now().getDayOfMonth();
+            if(LocalDate.now().getMonthValue() == 3 && day >= 8 && day <= 13){
+                if(!args[0].equalsIgnoreCase("apricot")){
+                    player.sendMessage("[accent]Invalid key");
+                    return;
+                }
+                networkDB.loadRow(player.uuid());
+                networkDB.safePut(player.uuid(),"donatorLevel", 1);
+                long currentPeriod = (int) networkDB.safeGet(player.uuid(),"donateExpire") - System.currentTimeMillis()/1000;
+                currentPeriod = Math.max(0, currentPeriod);
+
+                networkDB.safePut(player.uuid(),"donateExpire", System.currentTimeMillis()/1000 + 604800 + currentPeriod);
+                networkDB.saveRow(player.uuid(), false);
+                player.sendMessage("[gold]You now have a week of donator. Thanks for playing!" +
+                        "\n[accent]Relog to receive your rank (also don't  tell people the key, just to keep it fun)");
+            }else{
+                player.sendMessage("[accent]Not the anniversary week!");
+            }
         });
 
     }
